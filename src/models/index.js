@@ -29,6 +29,10 @@ const defineAssociations = () => {
     Role.hasMany(User, { foreignKey: 'role_id', as: 'users' });
     User.belongsTo(Role, { foreignKey: 'role_id', as: 'role' });
 
+    // Supplier-User associations
+    User.hasOne(Supplier, { foreignKey: 'user_id', as: 'supplierProfile' });
+    Supplier.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
     // Role and Permission associations (Many-to-Many)
     Role.belongsToMany(Permission, {
         through: RolePermission,

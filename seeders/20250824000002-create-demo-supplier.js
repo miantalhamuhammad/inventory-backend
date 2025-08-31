@@ -7,6 +7,37 @@ export default {
   async up(queryInterface, Sequelize) {
     console.log('🔄 Creating supplier user...');
 
+    // Get Admin user ID for created_by field
+    const adminUsers = await queryInterface.sequelize.query(
+      `SELECT u.id FROM users u 
+       JOIN roles r ON u.role_id = r.id 
+       WHERE r.name = 'Admin' 
+       LIMIT 1`,
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+
+    let createdByUserId;
+    if (adminUsers.length > 0) {
+      createdByUserId = adminUsers[0].id;
+    } else {
+      // Fallback: get any user with id = 1 (typically admin)
+      const fallbackUsers = await queryInterface.sequelize.query(
+        "SELECT id FROM users WHERE id = 1 LIMIT 1",
+        { type: Sequelize.QueryTypes.SELECT }
+      );
+      createdByUserId = fallbackUsers.length > 0 ? fallbackUsers[0].id : 1;
+    }
+    // Check if demo supplier already exists
+    const existingDemoSupplier = await queryInterface.sequelize.query(
+      "SELECT COUNT(*) as count FROM users WHERE email = 'demo@supplier.com'",
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+
+    if (existingDemoSupplier[0].count > 0) {
+      console.log('Demo supplier user already exists, skipping creation');
+      return;
+    }
+
     // First, ensure supplier role exists
     let supplierRoleId;
     const existingRoles = await queryInterface.sequelize.query(
@@ -97,19 +128,18 @@ export default {
       // Create a warehouse if none exists
       await queryInterface.bulkInsert('warehouses', [{
         warehouse_name: 'Demo Warehouse',
-        warehouse_code: 'WH-DEMO',
+        warehouse_id: 'WH-DEMO',
         location: 'Demo Location',
-        address: '456 Demo Avenue',
-        city: 'Demo City',
-        state: 'CA',
-        zip_code: '90210',
-        country: 'United States',
+        address: '456 Demo Avenue, Demo City, CA 90210, United States',
+        contact_number: '+1-555-DEMO',
+        email: 'demo@warehouse.com',
+        description: 'Demo warehouse for testing purposes',
         created_at: new Date(),
         updated_at: new Date(),
       }]);
 
       const newWarehouses = await queryInterface.sequelize.query(
-        'SELECT id FROM warehouses WHERE warehouse_code = "WH-DEMO"',
+        'SELECT id FROM warehouses WHERE warehouse_id = "WH-DEMO"',
         { type: Sequelize.QueryTypes.SELECT }
       );
       warehouseId = newWarehouses[0].id;
@@ -141,6 +171,7 @@ export default {
       notes: 'Demo purchase order for testing supplier portal functionality.',
       created_at: new Date(),
       updated_at: new Date(),
+      created_by: createdByUserId
     };
 
     await queryInterface.bulkInsert('purchase_orders', [purchaseOrder]);
@@ -172,7 +203,7 @@ export default {
 
     // Remove demo warehouse if it was created
     await queryInterface.bulkDelete('warehouses', {
-      warehouse_code: 'WH-DEMO'
+      warehouse_id: 'WH-DEMO'
     });
 
     console.log('✅ Demo supplier user removed successfully');

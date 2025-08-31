@@ -1,4 +1,5 @@
 import db from '../models/index.js';
+import { Op } from 'sequelize';
 
 class SupplierService {
   async getSupplierProfile(userId) {
@@ -390,6 +391,202 @@ class SupplierService {
     }
 
     return supplier;
+  }
+
+  //new
+  // Inside SupplierService class
+
+// Find all suppliers with pagination + search
+  async findAll(page = 1, limit = 10, search = '', filters = {}) {
+    const whereClause = {};
+
+    if (search) {
+      whereClause[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    if (filters.category) {
+      whereClause.category = filters.category;
+    }
+
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await db.Supplier.findAndCountAll({
+      where: whereClause,
+      limit,
+      offset,
+      order: [['created_at', 'DESC']]
+    });
+
+    return {
+      data: rows,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(count / limit),
+        totalItems: count,
+        itemsPerPage: limit
+      }
+    };
+  }
+
+// Find by ID
+  async findById(id) {
+    return await db.Supplier.findByPk(id, {
+      include: [{ model: db.User, as: 'user', attributes: ['id', 'username', 'email'] }]
+    });
+  }
+
+// Create
+  async create(data) {
+    return await db.Supplier.create(data);
+  }
+
+// Update
+  async update(id, data) {
+    const supplier = await db.Supplier.findByPk(id);
+    if (!supplier) return null;
+    await supplier.update(data);
+    return supplier;
+  }
+
+// Delete
+  async delete(id) {
+    const supplier = await db.Supplier.findByPk(id);
+    if (!supplier) return null;
+    await supplier.destroy();
+    return true;
+  }
+
+// Get products for supplier
+  async getProducts(supplierId) {
+    return await db.Product.findAll({
+      where: { supplier_id: supplierId }
+    });
+  }
+
+// Get orders for supplier
+  async getOrders(supplierId, page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await db.PurchaseOrder.findAndCountAll({
+      where: { supplier_id: supplierId },
+      limit,
+      offset,
+      order: [['created_at', 'DESC']]
+    });
+
+    return {
+      data: rows,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(count / limit),
+        totalItems: count,
+        itemsPerPage: limit
+      }
+    };
+  }
+
+// Find suppliers that have linked users with supplier role
+  async findSuppliersWithUsers(page = 1, limit = 10, search = '', filters = {}) {
+    const offset = (page - 1) * limit;
+
+    const whereClause = {};
+    const userWhereClause = {};
+
+    // Add search functionality for supplier fields
+    if (search) {
+      whereClause[Op.or] = [
+        { supplier_name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { contact_person: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    if (filters.category) {
+      whereClause.category = filters.category;
+    }
+
+    const { count, rows } = await db.Supplier.findAndCountAll({
+      where: whereClause,
+      include: [{
+        model: db.User,
+        as: 'user',
+        required: false, // LEFT JOIN to include suppliers even without users
+        where: userWhereClause,
+        attributes: ['id', 'username', 'email', 'role_id'],
+        include: [{
+          model: db.Role,
+          as: 'role',
+          required: false,
+          attributes: ['id', 'name']
+        }]
+      }],
+      limit,
+      offset,
+      order: [['created_at', 'DESC']]
+    });
+
+    return {
+      data: rows,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(count / limit),
+        totalItems: count,
+        itemsPerPage: limit
+      }
+    };
+  }
+
+  // Find suppliers that have linked users specifically with supplier role
+  async findSuppliersWithSupplierRoleUsers(page = 1, limit = 10, search = '', filters = {}) {
+    const offset = (page - 1) * limit;
+
+    const whereClause = {};
+
+    // Add search functionality for supplier fields
+    if (search) {
+      whereClause[Op.or] = [
+        { supplier_name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { contact_person: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    if (filters.category) {
+      whereClause.category = filters.category;
+    }
+
+    const { count, rows } = await db.Supplier.findAndCountAll({
+      where: whereClause,
+      include: [{
+        model: db.User,
+        as: 'user',
+        required: true, // INNER JOIN - only suppliers with linked users
+        attributes: ['id', 'username', 'email', 'role_id'],
+        include: [{
+          model: db.Role,
+          as: 'role',
+          required: true,
+          where: { name: 'supplier' }, // Only users with supplier role
+          attributes: ['id', 'name']
+        }]
+      }],
+      limit,
+      offset,
+      order: [['created_at', 'DESC']]
+    });
+
+    return {
+      data: rows,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(count / limit),
+        totalItems: count,
+        itemsPerPage: limit
+      }
+    };
   }
 }
 

@@ -5,31 +5,95 @@ import bcrypt from 'bcrypt';
 /** @type {import('sequelize-cli').Migration} */
 export default {
   async up(queryInterface, Sequelize) {
-    // Create supplier users
+    // Check if supplier test data already exists
+    const existingSuppliers = await queryInterface.sequelize.query(
+      "SELECT COUNT(*) as count FROM suppliers WHERE supplier_id IN ('SUP24001', 'SUP24002', 'SUP24003')",
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+
+    if (existingSuppliers[0].count > 0) {
+      console.log('Supplier test data already exists, skipping insertion');
+      return;
+    }
+
+    // Get Admin user ID for created_by field
+    const adminUsers = await queryInterface.sequelize.query(
+      `SELECT u.id FROM users u 
+       JOIN roles r ON u.role_id = r.id 
+       WHERE r.name = 'Admin' 
+       LIMIT 1`,
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+
+    let createdByUserId;
+    if (adminUsers.length > 0) {
+      createdByUserId = adminUsers[0].id;
+    } else {
+      // Fallback: get any user with id = 1 (typically admin)
+      const fallbackUsers = await queryInterface.sequelize.query(
+        "SELECT id FROM users WHERE id = 1 LIMIT 1",
+        { type: Sequelize.QueryTypes.SELECT }
+      );
+      createdByUserId = fallbackUsers.length > 0 ? fallbackUsers[0].id : 1;
+    }
+
+    // Get supplier role ID
+    const supplierRoles = await queryInterface.sequelize.query(
+      "SELECT id FROM roles WHERE name = 'supplier'",
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+
+    let supplierRoleId;
+    if (supplierRoles.length > 0) {
+      supplierRoleId = supplierRoles[0].id;
+    } else {
+
+      // Create supplier role if it doesn't exist
+      await queryInterface.bulkInsert('roles', [{
+        name: 'supplier',
+        description: 'Supplier role for vendor portal access',
+        created_at: new Date(),
+        updated_at: new Date(),
+      }]);
+
+      const newRoles = await queryInterface.sequelize.query(
+        "SELECT id FROM roles WHERE name = 'supplier'",
+        { type: Sequelize.QueryTypes.SELECT }
+      );
+      supplierRoleId = newRoles[0].id;
+    }
+
+    // Create supplier users with correct column names
     const supplierUsers = [
       {
-        name: 'ABC Supplies Ltd',
+        username: 'abcsupplies',
         email: 'contact@abcsupplies.com',
-        password: await bcrypt.hash('supplier123', 10),
-        role: 'supplier',
+        password_hash: await bcrypt.hash('supplier123', 10),
+        role_id: supplierRoleId,
+        is_active: true,
         created_at: new Date(),
         updated_at: new Date(),
+        //created_by: createdByUserId,
       },
       {
-        name: 'XYZ Manufacturing',
+        username: 'xyzmanufacturing',
         email: 'sales@xyzmanufacturing.com',
-        password: await bcrypt.hash('supplier123', 10),
-        role: 'supplier',
+        password_hash: await bcrypt.hash('supplier123', 10),
+        role_id: supplierRoleId,
+        is_active: true,
         created_at: new Date(),
         updated_at: new Date(),
+        //created_by: createdByUserId,
       },
       {
-        name: 'Global Tech Solutions',
+        username: 'globaltechsol',
         email: 'info@globaltechsol.com',
-        password: await bcrypt.hash('supplier123', 10),
-        role: 'supplier',
+        password_hash: await bcrypt.hash('supplier123', 10),
+        role_id: supplierRoleId,
+        is_active: true,
         created_at: new Date(),
         updated_at: new Date(),
+        //created_by: createdByUserId,
       },
     ];
 
@@ -37,8 +101,11 @@ export default {
 
     // Get the inserted user IDs
     const insertedUsers = await queryInterface.sequelize.query(
-      "SELECT id, email FROM users WHERE role = 'supplier'",
-      { type: Sequelize.QueryTypes.SELECT }
+      "SELECT id, email FROM users WHERE role_id = ?",
+      {
+        replacements: [supplierRoleId],
+        type: Sequelize.QueryTypes.SELECT
+      }
     );
 
     // Create suppliers linked to users
@@ -62,6 +129,7 @@ export default {
         notes: 'Reliable supplier for industrial equipment and materials.',
         created_at: new Date(),
         updated_at: new Date(),
+        //created_by: createdByUserId,
       },
       {
         supplier_name: 'XYZ Manufacturing',
@@ -82,6 +150,7 @@ export default {
         notes: 'Specialized in electronic components and assemblies.',
         created_at: new Date(),
         updated_at: new Date(),
+        //created_by: createdByUserId,
       },
       {
         supplier_name: 'Global Tech Solutions',
@@ -102,14 +171,14 @@ export default {
         notes: 'Provider of cutting-edge technology solutions and hardware.',
         created_at: new Date(),
         updated_at: new Date(),
+        //created_by: createdByUserId,
       },
     ];
-
     await queryInterface.bulkInsert('suppliers', suppliers);
 
     // Get supplier IDs for creating purchase orders
     const insertedSuppliers = await queryInterface.sequelize.query(
-      'SELECT id, supplier_id FROM suppliers',
+      'SELECT id, supplier_id FROM suppliers WHERE supplier_id IN ("SUP24001", "SUP24002", "SUP24003")',
       { type: Sequelize.QueryTypes.SELECT }
     );
 
@@ -121,18 +190,19 @@ export default {
 
     if (warehouses.length === 0) {
       // Create a default warehouse if none exists
+
       await queryInterface.bulkInsert('warehouses', [
         {
           warehouse_name: 'Main Warehouse',
-          warehouse_code: 'WH001',
+          warehouse_id: 'WH001',
           location: 'New York',
-          address: '100 Storage Street',
-          city: 'New York',
-          state: 'NY',
-          zip_code: '10001',
-          country: 'United States',
+          address: '100 Storage Street, New York, NY 10001, United States',
+          contact_number: '+1-555-0100',
+          email: 'warehouse@company.com',
+          description: 'Main warehouse for inventory storage',
           created_at: new Date(),
           updated_at: new Date(),
+          //created_by: createdByUserId,
         },
       ]);
     }
@@ -158,6 +228,7 @@ export default {
         notes: 'Urgent requirement for ongoing project. Quality certificates required.',
         created_at: new Date(),
         updated_at: new Date(),
+        created_by: createdByUserId,
       },
       {
         po_number: 'PO-2024-002',
@@ -176,6 +247,7 @@ export default {
         notes: 'Standard quality acceptable. Bulk packaging preferred.',
         created_at: new Date(),
         updated_at: new Date(),
+        created_by: createdByUserId,
       },
       {
         po_number: 'PO-2024-003',
@@ -194,12 +266,12 @@ export default {
         notes: 'Required for new employee onboarding and safety compliance.',
         created_at: new Date(),
         updated_at: new Date(),
+        created_by: createdByUserId,
       },
     ];
 
     await queryInterface.bulkInsert('purchase_orders', purchaseOrders);
 
-    console.log('✅ Supplier test data seeded successfully');
   },
 
   async down(queryInterface, Sequelize) {

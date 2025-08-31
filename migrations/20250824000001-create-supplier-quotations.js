@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = {
+export default {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('supplier_quotations', {
       id: {
@@ -120,7 +120,7 @@ module.exports = {
     await queryInterface.addIndex('supplier_quotations', ['quotation_date']);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface) => {
     await queryInterface.dropTable('supplier_quotations');
   }
 };

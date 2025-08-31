@@ -1,7 +1,7 @@
 'use strict';
 
 /** @type {import('sequelize-cli').Migration} */
-module.exports = {
+export default {
     async up(queryInterface, Sequelize) {
         // For MySQL, we need to modify the column directly instead of using ALTER TYPE
         // First, let's modify the purchase_orders table to update the status enum
@@ -35,15 +35,38 @@ module.exports = {
     },
 
     async down(queryInterface, Sequelize) {
-        await queryInterface.removeColumn('purchase_orders', 'quotation_deadline');
-        await queryInterface.removeColumn('purchase_orders', 'priority');
-        await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_purchase_orders_priority";');
+        // Remove added columns first (these should work without issues)
+        try {
+            await queryInterface.removeColumn('purchase_orders', 'quotation_deadline');
+        } catch (error) {
+            console.log('quotation_deadline column may not exist:', error.message);
+        }
 
-        // Revert the status enum to original values
-        await queryInterface.changeColumn('purchase_orders', 'status', {
-            type: Sequelize.ENUM('PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'),
-            allowNull: false,
-            defaultValue: 'PENDING',
-        });
+        try {
+            await queryInterface.removeColumn('purchase_orders', 'priority');
+        } catch (error) {
+            console.log('priority column may not exist:', error.message);
+        }
+
+        // For the status ENUM, we need to be more careful with MySQL
+        // First update any records that have new status values
+        try {
+            await queryInterface.sequelize.query(
+                "UPDATE purchase_orders SET status = 'PENDING' WHERE status IN ('QUOTATION_REQUESTED', 'QUOTATION_RECEIVED', 'QUOTATION_APPROVED')"
+            );
+        } catch (error) {
+            console.log('Status update may have failed:', error.message);
+        }
+
+        // Then modify the column to remove the new enum values
+        try {
+            await queryInterface.changeColumn('purchase_orders', 'status', {
+                type: Sequelize.ENUM('PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'),
+                allowNull: false,
+                defaultValue: 'PENDING',
+            });
+        } catch (error) {
+            console.log('Status column revert may have failed:', error.message);
+        }
     },
 };
