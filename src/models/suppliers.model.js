@@ -64,6 +64,14 @@ const Supplier = sequelize.define('Supplier', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  company_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'companies',
+      key: 'id'
+    }
+  },
   user_id: {
     type: DataTypes.INTEGER,
     allowNull: true,

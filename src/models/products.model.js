@@ -44,6 +44,14 @@ Product.init({
             key: 'id',
         },
     },
+    company_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'companies',
+            key: 'id',
+        },
+    },
     weight: {
         type: DataTypes.DECIMAL(10, 3),
         allowNull: true,
@@ -92,6 +100,7 @@ Product.init({
         { fields: ['barcode_number'] },
         { fields: ['category_id'] },
         { fields: ['supplier_id'] },
+        { fields: ['company_id'] },
     ],
 });
 

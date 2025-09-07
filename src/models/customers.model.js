@@ -59,6 +59,14 @@ Customer.init({
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true,
     },
+    company_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'companies',
+            key: 'id',
+        },
+    },
     payment_terms: {
         type: DataTypes.STRING(100),
         allowNull: true,
@@ -84,6 +92,7 @@ Customer.init({
         { fields: ['email'] },
         { fields: ['customer_name'] },
         { fields: ['customer_type'] },
+        { fields: ['company_id'] },
     ],
 });
 

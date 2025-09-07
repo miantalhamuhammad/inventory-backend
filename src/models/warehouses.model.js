@@ -31,6 +31,14 @@ Warehouse.init({
         type: DataTypes.INTEGER,
         allowNull: true,
     },
+    company_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'companies',
+            key: 'id',
+        },
+    },
     manager_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -64,6 +72,7 @@ Warehouse.init({
     indexes: [
         { fields: ['warehouse_id'] },
         { fields: ['manager_id'] },
+        { fields: ['company_id'] },
     ],
 });
 

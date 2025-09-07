@@ -193,8 +193,25 @@ export default {
   },
 
   async down(queryInterface, Sequelize) {
+    // Remove role-permissions first
     await queryInterface.bulkDelete('role_permissions', null, {});
+
+    // Remove permissions
     await queryInterface.bulkDelete('permissions', null, {});
-    await queryInterface.bulkDelete('roles', null, {});
+
+    // Remove users that use these default roles (if they exist)
+    await queryInterface.bulkDelete('users', {
+      role_id: {
+        [Sequelize.Op.in]: queryInterface.sequelize.literal(
+          '(SELECT id FROM roles WHERE name IN ("Super Admin","Admin","Manager","Employee","Viewer"))'
+        )
+      }
+    });
+
+    // Finally, remove roles
+    await queryInterface.bulkDelete('roles', {
+      name: ['Super Admin', 'Admin', 'Manager', 'Employee', 'Viewer']
+    });
   }
+
 };

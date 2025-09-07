@@ -23,6 +23,14 @@ Department.init({
         type: DataTypes.TEXT,
         allowNull: true,
     },
+    company_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'companies',
+            key: 'id',
+        },
+    },
     manager_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -49,6 +57,7 @@ Department.init({
     indexes: [
         { fields: ['department_code'] },
         { fields: ['department_name'] },
+        { fields: ['company_id'] },
         { fields: ['manager_id'] },
     ],
 });

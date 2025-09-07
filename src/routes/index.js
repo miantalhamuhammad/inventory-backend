@@ -15,6 +15,7 @@ import saleOrderRoutes from './saleOrderRoutes.js';
 import shipmentRoutes from './shipmentRoutes.js';
 import supplierRoutes from './supplierRoutes.js';
 import supplierRegistrationRoutes from './supplierRegistration.routes.js';
+import companyRoutes from './companyRoutes.js';
 
 const router = express.Router();
 
@@ -35,5 +36,6 @@ router.use('/sale-orders', saleOrderRoutes);
 router.use('/shipments', shipmentRoutes);
 router.use('/supplier', supplierRoutes);  // Supplier panel endpoints
 router.use('/', supplierRegistrationRoutes); // Public supplier registration endpoint
+router.use('/companies', companyRoutes);
 
 export default router;

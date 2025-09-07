@@ -15,6 +15,7 @@ PurchaseOrder.init({
     allowNull: false,
     unique: true
   },
+  subtotal: { type: DataTypes.DECIMAL(10,2), allowNull: false },   // ✅ must exist
   supplier_id: {
     type: DataTypes.INTEGER,
     allowNull: false,

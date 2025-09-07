@@ -34,11 +34,15 @@ SaleOrderItem.init({
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
     },
+    // total_price: {
+    //     type: DataTypes.VIRTUAL,
+    //     get() {
+    //         return parseFloat(this.quantity) * parseFloat(this.unit_price);
+    //     },
+    // },
     total_price: {
-        type: DataTypes.VIRTUAL,
-        get() {
-            return parseFloat(this.quantity) * parseFloat(this.unit_price);
-        },
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: false,
     },
     shipped_quantity: {
         type: DataTypes.INTEGER,

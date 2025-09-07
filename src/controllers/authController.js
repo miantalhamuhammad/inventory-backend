@@ -11,7 +11,7 @@ class AuthController {
                 return res.error('Validation failed', 400, errors.array());
             }
 
-            const { username, email, password_hash: passwordHash, role_id: roleId } = req.body;
+            const { username, email, password_hash: passwordHash, role_id: roleId, company_id: companyId } = req.body;
 
             // Check if user already exists
             const existingUser = await UserService.findByEmail(email);
@@ -19,7 +19,19 @@ class AuthController {
                 return res.error('User already exists with this email', 400);
             }
 
-            const userData = { username, email, password_hash: passwordHash, role_id: roleId };
+            // Validate company exists if company_id is provided
+            if (companyId) {
+                const CompanyService = await import('../services/companyService.js').then(m => m.default);
+                const company = await CompanyService.findById(companyId);
+                if (!company) {
+                    return res.error('Company not found', 400);
+                }
+                if (!company.is_active) {
+                    return res.error('Company is not active', 400);
+                }
+            }
+
+            const userData = { username, email, password_hash: passwordHash, role_id: roleId, company_id: companyId };
             const user = await UserService.create(userData);
 
             // Remove password from response

@@ -18,6 +18,14 @@ Category.init({
         type: DataTypes.TEXT,
         allowNull: true,
     },
+    company_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'companies',
+            key: 'id',
+        },
+    },
     parent_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -36,6 +44,7 @@ Category.init({
     indexes: [
         { fields: ['name'] },
         { fields: ['parent_id'] },
+        { fields: ['company_id'] },
     ],
 });
 

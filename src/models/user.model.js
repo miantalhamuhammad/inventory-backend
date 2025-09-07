@@ -30,6 +30,14 @@ const User = sequelize.define('User', {
       key: 'id'
     }
   },
+  company_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'companies',
+      key: 'id'
+    }
+  },
   is_active: {
     type: DataTypes.BOOLEAN,
     allowNull: false,

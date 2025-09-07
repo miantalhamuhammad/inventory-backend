@@ -101,47 +101,111 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/sale-orders - Create new sale order
+// router.post('/', async (req, res) => {
+//     try {
+//         const { SaleOrder, Shipment } = req.app.get('models');
+//         const orderData = req.body;
+//
+//         const saleOrder = await SaleOrder.create(orderData);
+//
+//         // If the order is shipped, create a shipment
+//         if (saleOrder.status && saleOrder.status.toLowerCase() === 'shipped') {
+//             if (!req.user?.id) {
+//                 return res.status(400).json({
+//                     success: false,
+//                     message: 'Authenticated user required to create shipment.'
+//                 });
+//             }
+//             await Shipment.create({
+//                 shipment_number: generateShipmentId(),
+//                 sale_order_id: saleOrder.id,
+//                 warehouse_id: saleOrder.warehouse_id || null,
+//                 carrier_name: saleOrder.carrier_name || null,
+//                 tracking_number: generateTrackingId(),
+//                 shipping_date: new Date(),
+//                 expected_delivery_date: calculateETD(saleOrder),
+//                 status: 'SHIPPED',
+//                 created_by: updaorderData.created_by
+//             });
+//         }
+//
+//         res.status(201).json({
+//             success: true,
+//             message: 'Sale order created successfully',
+//             data: saleOrder
+//         });
+//     } catch (error) {
+//         console.error('Error creating sale order:', error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Internal server error',
+//             error: error.message
+//         });
+//     }
+// });
+const generateSONumber = () => `SO-${Date.now()}`;
 router.post('/', async (req, res) => {
-    try {
-        const { SaleOrder, Shipment } = req.app.get('models');
-        const orderData = req.body;
+  const transaction = await req.app.get('models').sequelize.transaction();
+  try {
+    const { SaleOrder, SaleOrderItem } = req.app.get('models');
+    const orderData = req.body;
 
-        const saleOrder = await SaleOrder.create(orderData);
-
-        // If the order is shipped, create a shipment
-        if (saleOrder.status && saleOrder.status.toLowerCase() === 'shipped') {
-            if (!req.user?.id) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Authenticated user required to create shipment.'
-                });
-            }
-            await Shipment.create({
-                shipment_number: generateShipmentId(),
-                sale_order_id: saleOrder.id,
-                warehouse_id: saleOrder.warehouse_id || null,
-                carrier_name: saleOrder.carrier_name || null,
-                tracking_number: generateTrackingId(),
-                shipping_date: new Date(),
-                expected_delivery_date: calculateETD(saleOrder),
-                status: 'SHIPPED',
-                created_by: updaorderData.created_by
-            });
-        }
-
-        res.status(201).json({
-            success: true,
-            message: 'Sale order created successfully',
-            data: saleOrder
-        });
-    } catch (error) {
-        console.error('Error creating sale order:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            error: error.message
-        });
+    // ✅ Calculate totals
+    let subtotal = 0;
+    if (Array.isArray(orderData.items)) {
+      subtotal = orderData.items.reduce((sum, item) => {
+        return sum + (item.quantity * item.unit_price);
+      }, 0);
     }
+    const total_amount = subtotal; // (add tax/discount logic if needed)
+
+    // ✅ Map to DB fields
+    const mappedData = {
+      so_number: generateSONumber(),
+      customer_id: orderData.customerId,
+      warehouse_id: orderData.warehouseId,
+      order_date: orderData.orderDate,
+      status: orderData.status || 'PENDING',
+      subtotal,
+      total_amount,
+      payment_terms: orderData.paymentTerms || null,
+      notes: orderData.notes || null,
+      created_by: req.user?.id || orderData.createdBy,
+    };
+
+    // ✅ Create Sale Order
+    const saleOrder = await SaleOrder.create(mappedData, { transaction });
+
+    // ✅ Create Sale Order Items
+    if (Array.isArray(orderData.items)) {
+      for (const item of orderData.items) {
+        await SaleOrderItem.create({
+          sale_order_id: saleOrder.id,
+          product_id: item.productId,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.quantity * item.unit_price, // ✅ FIX HERE
+          notes: item.notes || null,
+        }, { transaction });
+      }
+    }
+
+    await transaction.commit();
+
+    res.status(201).json({
+      success: true,
+      message: 'Sale order created successfully',
+      data: saleOrder
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Error creating sale order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
 });
 
 // GET /api/sale-orders/:id - Get single sale order

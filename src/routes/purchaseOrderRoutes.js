@@ -95,20 +95,24 @@ router.post('/', async (req, res) => {
     // ✅ Generate unique PO number using proper utility function
     const po_number = await generatePONumber();
     console.log('Generated PO number:', po_number);
-
+    const subtotal = (orderData.quantity && orderData.unitPrice)
+      ? parseFloat(orderData.quantity) * parseFloat(orderData.unitPrice)
+      : 0;
     const mappedData = {
-      po_number: po_number, // ✅ Use generated unique PO number
+      po_number: po_number,
       supplier_id: orderData.supplierId,
       warehouse_id: orderData.warehouseId,
       order_date: orderData.orderDate,
       expected_delivery_date: orderData.expectedDeliveryDate,
-      subtotal: parseFloat(orderData.quantity) * parseFloat(orderData.unitPrice),
+      subtotal: subtotal,
       tax_amount: 0,
       discount_amount: 0,
       total_amount: parseFloat(orderData.totalAmount),
       payment_terms: orderData.paymentTerms,
       notes: orderData.notes,
       created_by: orderData.createdBy,
+      status: orderData.status || 'PENDING'
+
     };
 
     console.log("Final Mapped Data:", mappedData);

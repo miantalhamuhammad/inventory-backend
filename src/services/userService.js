@@ -42,8 +42,9 @@ class UserService {
 
     // Get user by email
     static async findByEmail(email) {
+      console.log(email);
         return await User.findOne({
-            where: { email },
+            where: { email:email },
             include: [
                 {
                     model: Role,

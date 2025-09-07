@@ -22,9 +22,14 @@ import Employee from './employees.model.js';
 import Department from './departments.model.js';
 import Invoice from './invoices.model.js';
 import Shipment from './shipments.model.js';
+import Company from './company.model.js';
 
 // Define associations
 const defineAssociations = () => {
+    // Company associations
+    Company.hasMany(User, { foreignKey: 'company_id', as: 'users' });
+    User.belongsTo(Company, { foreignKey: 'company_id', as: 'company' });
+
     // User associations
     Role.hasMany(User, { foreignKey: 'role_id', as: 'users' });
     User.belongsTo(Role, { foreignKey: 'role_id', as: 'role' });
@@ -181,7 +186,8 @@ export {
     Employee,
     Department,
     Invoice,
-    Shipment
+    Shipment,
+    Company
 };
 
 // Default export
@@ -207,5 +213,6 @@ export default {
     Employee,
     Department,
     Invoice,
-    Shipment
+    Shipment,
+    Company
 };

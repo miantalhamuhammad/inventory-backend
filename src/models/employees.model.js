@@ -43,6 +43,14 @@ Employee.init({
             key: 'id',
         },
     },
+    company_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'companies',
+            key: 'id',
+        },
+    },
     position: {
         type: DataTypes.STRING(100),
         allowNull: false,
@@ -83,6 +91,7 @@ Employee.init({
         { fields: ['employee_id'] },
         { fields: ['email'] },
         { fields: ['department_id'] },
+        { fields: ['company_id'] },
         { fields: ['manager_id'] },
         { fields: ['status'] },
     ],
