@@ -12,12 +12,16 @@ class UserController {
             const options = {
                 limit: parseInt(limit),
                 offset: parseInt(offset),
-                order: [['created_at', 'DESC']]
+                order: [['created_at', 'DESC']],
+                where: {
+                    company_id: req.companyId // Filter by company
+                }
             };
 
             // Add search functionality
             if (search) {
                 options.where = {
+                    ...options.where,
                     [Op.or]: [
                         { username: { [Op.iLike]: `%${search}%` } },
                         { email: { [Op.iLike]: `%${search}%` } },
@@ -47,10 +51,10 @@ class UserController {
     static async getUserById(req, res, next) {
         try {
             const { id } = req.params;
-            const user = await UserService.findById(id);
+            const user = await UserService.findById(id, req.companyId);
 
             if (!user) {
-                return res.error('User not found', 404);
+                return res.error('User not found or access denied', 404);
             }
 
             res.success(user, 'User retrieved successfully');
@@ -67,9 +71,13 @@ class UserController {
                 return res.error('Validation failed', 400, errors.array());
             }
 
-            const userData = req.body;
-            const user = await UserService.create(userData);
+            // Add company_id to user data
+            const userData = {
+                ...req.body,
+                company_id: req.companyId
+            };
 
+            const user = await UserService.create(userData);
             res.success(user, 'User created successfully', 201);
         } catch (error) {
             next(error);
@@ -85,14 +93,14 @@ class UserController {
             }
 
             const { id } = req.params;
-            const userData = req.body;
+            const updated = await UserService.update(id, req.body, req.companyId);
 
-            const user = await UserService.update(id, userData);
-            res.success(user, 'User updated successfully');
-        } catch (error) {
-            if (error.message === 'User not found') {
-                return res.error('User not found', 404);
+            if (!updated) {
+                return res.error('User not found or access denied', 404);
             }
+
+            res.success(null, 'User updated successfully');
+        } catch (error) {
             next(error);
         }
     }
@@ -101,13 +109,14 @@ class UserController {
     static async deleteUser(req, res, next) {
         try {
             const { id } = req.params;
-            await UserService.delete(id);
+            const deleted = await UserService.delete(id, req.companyId);
+
+            if (!deleted) {
+                return res.error('User not found or access denied', 404);
+            }
 
             res.success(null, 'User deleted successfully');
         } catch (error) {
-            if (error.message === 'User not found') {
-                return res.error('User not found', 404);
-            }
             next(error);
         }
     }

@@ -6,7 +6,10 @@ class SuppliersController {
     static async getSuppliers(req, res, next) {
         try {
             const { page = 1, limit = 10, search = '', category } = req.query;
-            const filters = { category };
+            const filters = {
+                category,
+                company_id: req.companyId // Add company filter
+            };
 
             const result = await SupplierService.findAll(
                 parseInt(page),
@@ -25,7 +28,7 @@ class SuppliersController {
     static async getSupplier(req, res, next) {
         try {
             const { id } = req.params;
-            const supplier = await SupplierService.findById(id);
+            const supplier = await SupplierService.findById(id, req.companyId);
 
             if (!supplier) {
                 return res.error('Supplier not found', 404);
@@ -45,7 +48,13 @@ class SuppliersController {
                 return res.error('Validation failed', 400, errors.array());
             }
 
-            const supplier = await SupplierService.create(req.body);
+            // Add company_id to supplier data
+            const supplierData = {
+                ...req.body,
+                company_id: req.companyId
+            };
+
+            const supplier = await SupplierService.create(supplierData);
             res.success(supplier, 'Supplier created successfully', 201);
         } catch (error) {
             next(error);
@@ -61,10 +70,10 @@ class SuppliersController {
             }
 
             const { id } = req.params;
-            const updated = await SupplierService.update(id, req.body);
+            const updated = await SupplierService.update(id, req.body, req.companyId);
 
             if (!updated) {
-                return res.error('Supplier not found', 404);
+                return res.error('Supplier not found or access denied', 404);
             }
 
             res.success(null, 'Supplier updated successfully');
@@ -77,10 +86,10 @@ class SuppliersController {
     static async deleteSupplier(req, res, next) {
         try {
             const { id } = req.params;
-            const deleted = await SupplierService.delete(id);
+            const deleted = await SupplierService.delete(id, req.companyId);
 
             if (!deleted) {
-                return res.error('Supplier not found', 404);
+                return res.error('Supplier not found or access denied', 404);
             }
 
             res.success(null, 'Supplier deleted successfully');

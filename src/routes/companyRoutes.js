@@ -4,7 +4,6 @@ import { body } from 'express-validator';
 import { authenticateToken } from '../middlewares/auth.js';
 
 const router = express.Router();
-router.use(authenticateToken);
 
 // Validation rules for company creation
 const createCompanyValidation = [
@@ -55,8 +54,12 @@ const updateCompanyValidation = [
         .withMessage('Please provide a valid website URL')
 ];
 
-// Company routes
+// Public route for company registration (no authentication required)
 router.post('/', createCompanyValidation, CompanyController.addNewCompany);
+
+// All other company routes require authentication
+router.use(authenticateToken);
+
 router.get('/', CompanyController.getAllCompanies);
 router.get('/:id', CompanyController.getCompanyById);
 router.put('/:id', updateCompanyValidation, CompanyController.updateCompany);

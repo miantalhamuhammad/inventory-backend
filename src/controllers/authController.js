@@ -67,12 +67,13 @@ class AuthController {
                 return res.error('Account is deactivated', 401);
             }
 
-            // Generate JWT token
+            // Generate JWT token with company_id
             const token = jwt.sign(
                 {
                     userId: user.id,
                     email: user.email,
                     role: user.role?.name,
+                    companyId: user.company_id, // Include company_id in token
                 },
                 process.env.JWT_SECRET || 'fallback_secret',
                 { expiresIn: '24h' },

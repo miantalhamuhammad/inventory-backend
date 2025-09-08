@@ -5,7 +5,7 @@ class WarehousesController {
     // GET /api/warehouses
     static async getWarehouses(req, res, next) {
         try {
-            const warehouses = await WarehouseService.findAll();
+            const warehouses = await WarehouseService.findAll(req.companyId);
             res.success(warehouses, 'Warehouses retrieved successfully');
         } catch (error) {
             next(error);
@@ -16,7 +16,7 @@ class WarehousesController {
     static async getWarehouse(req, res, next) {
         try {
             const { id } = req.params;
-            const warehouse = await WarehouseService.findById(id);
+            const warehouse = await WarehouseService.findById(id, req.companyId);
 
             if (!warehouse) {
                 return res.error('Warehouse not found', 404);
@@ -36,7 +36,13 @@ class WarehousesController {
                 return res.error('Validation failed', 400, errors.array());
             }
 
-            const warehouse = await WarehouseService.create(req.body);
+            // Add company_id to warehouse data
+            const warehouseData = {
+                ...req.body,
+                company_id: req.companyId
+            };
+
+            const warehouse = await WarehouseService.create(warehouseData);
             res.success(warehouse, 'Warehouse created successfully', 201);
         } catch (error) {
             next(error);
@@ -52,10 +58,10 @@ class WarehousesController {
             }
 
             const { id } = req.params;
-            const updated = await WarehouseService.update(id, req.body);
+            const updated = await WarehouseService.update(id, req.body, req.companyId);
 
             if (!updated) {
-                return res.error('Warehouse not found', 404);
+                return res.error('Warehouse not found or access denied', 404);
             }
 
             res.success(null, 'Warehouse updated successfully');
@@ -68,10 +74,10 @@ class WarehousesController {
     static async deleteWarehouse(req, res, next) {
         try {
             const { id } = req.params;
-            const deleted = await WarehouseService.delete(id);
+            const deleted = await WarehouseService.delete(id, req.companyId);
 
             if (!deleted) {
-                return res.error('Warehouse not found', 404);
+                return res.error('Warehouse not found or access denied', 404);
             }
 
             res.success(null, 'Warehouse deleted successfully');

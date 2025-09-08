@@ -4,7 +4,7 @@ class DashboardController {
     // GET /api/dashboard/stats
     static async getStats(req, res, next) {
         try {
-            const stats = await DashboardService.getStats();
+            const stats = await DashboardService.getStats(req.companyId);
             res.success(stats, 'Dashboard statistics retrieved successfully');
         } catch (error) {
             next(error);
@@ -15,7 +15,7 @@ class DashboardController {
     static async getRecentOrders(req, res, next) {
         try {
             const { limit = 10 } = req.query;
-            const orders = await DashboardService.getRecentOrders(parseInt(limit));
+            const orders = await DashboardService.getRecentOrders(parseInt(limit), req.companyId);
             res.success(orders, 'Recent orders retrieved successfully');
         } catch (error) {
             next(error);
@@ -25,7 +25,7 @@ class DashboardController {
     // GET /api/dashboard/low-stock-alerts
     static async getLowStockAlerts(req, res, next) {
         try {
-            const alerts = await DashboardService.getLowStockAlerts();
+            const alerts = await DashboardService.getLowStockAlerts(req.companyId);
             res.success(alerts, 'Low stock alerts retrieved successfully');
         } catch (error) {
             next(error);
@@ -36,7 +36,7 @@ class DashboardController {
     static async getRevenueChart(req, res, next) {
         try {
             const { days = 30 } = req.query;
-            const revenueData = await DashboardService.getRevenueChart(parseInt(days));
+            const revenueData = await DashboardService.getRevenueChart(parseInt(days), req.companyId);
             res.success(revenueData, 'Revenue chart data retrieved successfully');
         } catch (error) {
             next(error);
@@ -47,7 +47,7 @@ class DashboardController {
     static async getTopProducts(req, res, next) {
         try {
             const { limit = 10 } = req.query;
-            const topProducts = await DashboardService.getTopProducts(parseInt(limit));
+            const topProducts = await DashboardService.getTopProducts(parseInt(limit), req.companyId);
             res.success(topProducts, 'Top products retrieved successfully');
         } catch (error) {
             next(error);
@@ -58,7 +58,7 @@ class DashboardController {
     static async getRecentActivities(req, res, next) {
         try {
             const { limit = 20 } = req.query;
-            const activities = await DashboardService.getRecentActivities(parseInt(limit));
+            const activities = await DashboardService.getRecentActivities(parseInt(limit), req.companyId);
             res.success(activities, 'Recent activities retrieved successfully');
         } catch (error) {
             next(error);

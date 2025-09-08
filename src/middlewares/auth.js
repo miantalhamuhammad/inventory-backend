@@ -18,12 +18,17 @@ export const authenticateToken = async (req, res, next) => {
 
     // Find user by ID from token - using decoded.userId to match your login controller
     const user = await db.User.findByPk(decoded.userId, {
-      attributes: ['id', 'username', 'email', 'role_id', 'is_active'],
+      attributes: ['id', 'username', 'email', 'role_id', 'company_id', 'is_active'],
       include: [
         {
           model: db.Role,
           as: 'role',
           attributes: ['id', 'name']
+        },
+        {
+          model: db.Company,
+          as: 'company',
+          attributes: ['id', 'name', 'is_active']
         }
       ]
     });
@@ -35,7 +40,16 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
+    // Check if user's company is active (if they have one)
+    if (user.company_id && (!user.company || !user.company.is_active)) {
+      return res.status(401).json({
+        success: false,
+        error: 'User company is not active.'
+      });
+    }
+
     req.user = user;
+    req.companyId = user.company_id; // Add company_id to request for easy access
     next();
   } catch (error) {
     console.error('Authentication error:', error);

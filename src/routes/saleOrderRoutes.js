@@ -162,9 +162,9 @@ router.post('/', async (req, res) => {
     // ✅ Map to DB fields
     const mappedData = {
       so_number: generateSONumber(),
-      customer_id: orderData.customerId,
-      warehouse_id: orderData.warehouseId,
-      order_date: orderData.orderDate,
+      customer_id: orderData.customer_id || orderData.customerId,
+      warehouse_id: orderData.warehouse_id || orderData.warehouseId,
+      order_date: orderData.order_date || orderData.orderDate,
       status: orderData.status || 'PENDING',
       subtotal,
       total_amount,

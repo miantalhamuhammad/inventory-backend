@@ -6,7 +6,11 @@ class StockController {
     static async getAllStock(req, res, next) {
         try {
             const { page = 1, limit = 10, search = '', product_id: productId, warehouse_id: warehouseId, startDate, endDate } = req.query;
-            const filters = { product_id: productId, warehouse_id: warehouseId };
+            const filters = {
+                product_id: productId,
+                warehouse_id: warehouseId,
+                company_id: req.companyId // Add company filter
+            };
             if (startDate) filters.startDate = startDate;
             if (endDate) filters.endDate = endDate;
 
@@ -27,7 +31,7 @@ class StockController {
     static async getStock(req, res, next) {
         try {
             const { id } = req.params;
-            const stock = await StockService.findById(id);
+            const stock = await StockService.findById(id, req.companyId);
 
             if (!stock) {
                 return res.error('Stock entry not found', 404);
@@ -47,7 +51,13 @@ class StockController {
                 return res.error('Validation failed', 400, errors.array());
             }
 
-            const stock = await StockService.create(req.body);
+            // Add company_id to stock data
+            const stockData = {
+                ...req.body,
+                company_id: req.companyId
+            };
+
+            const stock = await StockService.create(stockData);
             res.success(stock, 'Stock created successfully', 201);
         } catch (error) {
             next(error);
@@ -63,10 +73,10 @@ class StockController {
             }
 
             const { id } = req.params;
-            const stock = await StockService.update(id, req.body);
+            const stock = await StockService.update(id, req.body, req.companyId);
 
             if (!stock) {
-                return res.error('Stock entry not found', 404);
+                return res.error('Stock entry not found or access denied', 404);
             }
 
             res.success(stock, 'Stock updated successfully');
@@ -79,10 +89,10 @@ class StockController {
     static async deleteStock(req, res, next) {
         try {
             const { id } = req.params;
-            const deleted = await StockService.delete(id);
+            const deleted = await StockService.delete(id, req.companyId);
 
             if (!deleted) {
-                return res.error('Stock entry not found', 404);
+                return res.error('Stock entry not found or access denied', 404);
             }
 
             res.success(null, 'Stock deleted successfully');

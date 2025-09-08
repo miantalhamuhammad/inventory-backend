@@ -6,7 +6,11 @@ class ProductsController {
     static async getProducts(req, res, next) {
         try {
             const { page = 1, limit = 10, search = '', category_id: categoryId, supplier_id: supplierId } = req.query;
-            const filters = { category_id: categoryId, supplier_id: supplierId };
+            const filters = {
+                category_id: categoryId,
+                supplier_id: supplierId,
+                company_id: req.companyId // Add company filter
+            };
 
             const result = await ProductService.findAll(
                 parseInt(page),
@@ -25,7 +29,7 @@ class ProductsController {
     static async getProduct(req, res, next) {
         try {
             const { id } = req.params;
-            const product = await ProductService.findById(id);
+            const product = await ProductService.findById(id, req.companyId);
 
             if (!product) {
                 return res.error('Product not found', 404);
@@ -45,7 +49,13 @@ class ProductsController {
                 return res.error('Validation failed', 400, errors.array());
             }
 
-            const product = await ProductService.create(req.body);
+            // Add company_id to product data
+            const productData = {
+                ...req.body,
+                company_id: req.companyId
+            };
+
+            const product = await ProductService.create(productData);
             res.success(product, 'Product created successfully', 201);
         } catch (error) {
             next(error);
@@ -61,10 +71,10 @@ class ProductsController {
             }
 
             const { id } = req.params;
-            const updated = await ProductService.update(id, req.body);
+            const updated = await ProductService.update(id, req.body, req.companyId);
 
             if (!updated) {
-                return res.error('Product not found', 404);
+                return res.error('Product not found or access denied', 404);
             }
 
             res.success(null, 'Product updated successfully');
@@ -77,10 +87,10 @@ class ProductsController {
     static async deleteProduct(req, res, next) {
         try {
             const { id } = req.params;
-            const deleted = await ProductService.delete(id);
+            const deleted = await ProductService.delete(id, req.companyId);
 
             if (!deleted) {
-                return res.error('Product not found', 404);
+                return res.error('Product not found or access denied', 404);
             }
 
             res.success(null, 'Product deleted successfully');
@@ -98,7 +108,13 @@ class ProductsController {
                 return res.error('Products array is required', 400);
             }
 
-            const result = await ProductService.bulkCreate(products);
+            // Add company_id to all products in bulk upload
+            const productsWithCompanyId = products.map(product => ({
+                ...product,
+                company_id: req.companyId
+            }));
+
+            const result = await ProductService.bulkCreate(productsWithCompanyId);
             res.success(result, 'Products uploaded successfully', 201);
         } catch (error) {
             next(error);

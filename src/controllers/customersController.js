@@ -6,7 +6,10 @@ class CustomersController {
     static async getCustomers(req, res, next) {
         try {
             const { page = 1, limit = 10, search = '', customer_type: customerType } = req.query;
-            const filters = { customer_type: customerType };
+            const filters = {
+                customer_type: customerType,
+                company_id: req.companyId // Add company filter
+            };
 
             const result = await CustomerService.findAll(
                 parseInt(page),
@@ -29,7 +32,7 @@ class CustomersController {
     static async getCustomer(req, res, next) {
         try {
             const { id } = req.params;
-            const customer = await CustomerService.findById(id);
+            const customer = await CustomerService.findById(id, req.companyId);
 
             if (!customer) {
                 return res.error('Customer not found', 404);
@@ -49,7 +52,13 @@ class CustomersController {
                 return res.error('Validation failed', 400, errors.array());
             }
 
-            const customer = await CustomerService.create(req.body);
+            // Add company_id to customer data
+            const customerData = {
+                ...req.body,
+                company_id: req.companyId
+            };
+
+            const customer = await CustomerService.create(customerData);
             res.success(customer, 'Customer created successfully', 201);
         } catch (error) {
             next(error);
@@ -65,10 +74,10 @@ class CustomersController {
             }
 
             const { id } = req.params;
-            const updated = await CustomerService.update(id, req.body);
+            const updated = await CustomerService.update(id, req.body, req.companyId);
 
             if (!updated) {
-                return res.error('Customer not found', 404);
+                return res.error('Customer not found or access denied', 404);
             }
 
             res.success(null, 'Customer updated successfully');
@@ -81,10 +90,10 @@ class CustomersController {
     static async deleteCustomer(req, res, next) {
         try {
             const { id } = req.params;
-            const deleted = await CustomerService.delete(id);
+            const deleted = await CustomerService.delete(id, req.companyId);
 
             if (!deleted) {
-                return res.error('Customer not found', 404);
+                return res.error('Customer not found or access denied', 404);
             }
 
             res.success(null, 'Customer deleted successfully');
